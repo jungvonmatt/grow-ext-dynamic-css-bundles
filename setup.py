@@ -1,4 +1,6 @@
 from setuptools import setup
+from setuptools.command.develop import develop
+from setuptools.command.install import install
 
 setup(
     name='grow-ext-dynamic-css-bundles',
@@ -9,6 +11,5 @@ setup(
     include_package_data=False,
     packages=[
         'dynamic_css_bundles',
-    ],
-    install_requires=[],
+    ]
 )
