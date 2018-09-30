@@ -43,6 +43,8 @@ class DynamicCssBundle(object):
             try:
                 with open(path, 'r') as css_file:
                     css = css_file.read()
+                    css = css.strip()
+
                     stylesheet.append(css)
             except IOError:
                 print('ERROR: Could not find {}'.format(path))
