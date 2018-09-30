@@ -10,18 +10,22 @@ from grow.extensions import hooks
 class DynamicCssBundle(object):
 
     def __init__(self, doc):
-        self.doc = doc
+        self._doc = doc
         # Used to determine where to print the finished styles
         self._placeholder = '/* {} */'.format(uuid.uuid4())
         # Stores registered paths
-        self.css_files = []
+        self._css_files = []
 
     def __repr__(self):
         return '<DynamicCssBundle({})>'.format(self.placeholder)
 
     def addCssFile(self, path, priority=1):
-        self.css_files.append((path, priority))
-        # Return empty string to not interfer with content
+        # Normalize path
+        path = path.lstrip('/')
+        css = (path, priority)
+        if css not in self._css_files:
+            self._css_files.append(css)
+        # Return empty string to not print None if used with {{ }}
         return ''
 
     def emit(self):
@@ -30,15 +34,15 @@ class DynamicCssBundle(object):
     def inject(self, content):
         # Check wether the content has the placeholder
         if self.placeholder not in content:
-            return
+            return content
 
         # Sort CSS files by priority
-        self.css_files.sort(key=itemgetter(1))
+        self._css_files.sort(key=itemgetter(1))
 
-        base_path = self.doc.pod.root
+        base_path = self._doc.pod.root
         stylesheet = []
         # Try to get CSS from files and concat it
-        for path, priority in self.css_files:
+        for path, priority in self._css_files:
             path = '{}/{}'.format(base_path, path)
             try:
                 with open(path, 'r') as css_file:
