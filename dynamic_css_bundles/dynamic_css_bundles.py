@@ -12,17 +12,20 @@ class DynamicCssBundle(object):
     def __init__(self, doc):
         self.doc = doc
         # Used to determine where to print the finished styles
-        self.placeholder = '/* {} */'.format(uuid.uuid4())
+        self._placeholder = '/* {} */'.format(uuid.uuid4())
         # Stores registered paths
         self.css_files = []
 
     def __repr__(self):
-        return self.placeholder
+        return '<DynamicCssBundle({})>'.format(self.placeholder)
 
     def addCssFile(self, path, priority=1):
         self.css_files.append((path, priority))
         # Return empty string to not interfer with content
         return ''
+
+    def emit(self):
+        return self._placeholder
 
     def inject(self, content):
         # Check wether the content has the placeholder
