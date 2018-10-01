@@ -17,7 +17,7 @@ class DynamicCssBundle(object):
         self._css_files = []
 
     def __repr__(self):
-        return '<DynamicCssBundle({})>'.format(self.placeholder)
+        return '<DynamicCssBundle({})>'.format(self._placeholder)
 
     def addCssFile(self, path, priority=1):
         # Normalize path
@@ -33,7 +33,7 @@ class DynamicCssBundle(object):
 
     def inject(self, content):
         # Check wether the content has the placeholder
-        if self.placeholder not in content:
+        if self._placeholder not in content:
             return content
 
         # Sort CSS files by priority
@@ -54,7 +54,7 @@ class DynamicCssBundle(object):
                 doc.pod.logger.error('Could not find {}'.format(path))
 
         stylesheet = ''.join(stylesheet)
-        return content.replace(self.placeholder, stylesheet)
+        return content.replace(self._placeholder, stylesheet)
 
 
 class DynamicCssBundlesPreRenderHook(hooks.PreRenderHook):
