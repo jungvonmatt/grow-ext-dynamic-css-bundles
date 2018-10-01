@@ -36,8 +36,10 @@ class DynamicCssBundle(object):
         if self._placeholder not in content:
             return content
 
+        # Reverse to keep natural order
+        self._css_files.reverse()
         # Sort CSS files by priority
-        self._css_files.reverse().sort(key=itemgetter(1))
+        self._css_files.sort(key=itemgetter(1))
 
         base_path = self._doc.pod.root
         stylesheet = []
