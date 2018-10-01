@@ -51,7 +51,7 @@ class DynamicCssBundle(object):
 
                     stylesheet.append(css)
             except IOError:
-                print('ERROR: Could not find {}'.format(path))
+                doc.pod.logger.error('Could not find {}'.format(path))
 
         stylesheet = ''.join(stylesheet)
         return content.replace(self.placeholder, stylesheet)
