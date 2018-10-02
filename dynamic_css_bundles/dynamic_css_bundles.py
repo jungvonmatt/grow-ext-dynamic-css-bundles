@@ -3,7 +3,7 @@ import uuid
 from operator import itemgetter
 
 from grow import extensions
-from grow.documents import document
+from grow.documents import document, static_document
 from grow.extensions import hooks
 
 
@@ -36,7 +36,7 @@ class DynamicCssBundle(object):
         if self._placeholder not in content:
             return content
 
-        # Reverse to keep natural order
+        # Reverse to keep natural order after sorting
         self._css_files.reverse()
         # Sort CSS files by priority
         self._css_files.sort(key=itemgetter(1))
@@ -64,16 +64,24 @@ class DynamicCssBundlesPreRenderHook(hooks.PreRenderHook):
 
     def should_trigger(self, previous_result, doc, original_body, *_args,
                        **_kwargs):
-        """Should the hook trigger with current document?"""
+        """Only run for documents with contents"""
+
+        # Do not run for empty documents
+        content = previous_result if previous_result else original_body
+        if content is None:
+            return False
+
+        # Check that it's not a StaticDocument
+        if isinstance(doc, static_document.StaticDocument):
+            return False
+
         return True
 
     def trigger(self, previous_result, doc, raw_content, *_args, **_kwargs):
-        content = previous_result if previous_result else raw_content
-
         # Create dynamic stylesheet and attach to document for use in template
         setattr(doc, 'styles', DynamicCssBundle(doc))
 
-        return content
+        return previous_result if previous_result else raw_content
 
 
 class DynamicCssBundlesPostRenderHook(hooks.PostRenderHook):
@@ -81,14 +89,13 @@ class DynamicCssBundlesPostRenderHook(hooks.PostRenderHook):
 
     def should_trigger(self, previous_result, doc, original_body, *_args,
                        **_kwargs):
-        """Should the hook trigger with current document?"""
+        """Only needs to trigger if pre-render hook added a stylesheet"""
+        if not hasattr(doc, 'styles'):
+            return False
         return True
 
     def trigger(self, previous_result, doc, raw_content, *_args, **_kwargs):
         content = previous_result if previous_result else raw_content
-
-        if not doc.styles:
-            return content
 
         return doc.styles.inject(content)
 
