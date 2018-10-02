@@ -66,11 +66,6 @@ class DynamicCssBundlesPreRenderHook(hooks.PreRenderHook):
                        **_kwargs):
         """Only run for documents with contents"""
 
-        # Do not run for empty documents
-        content = previous_result if previous_result else original_body
-        if content is None:
-            return False
-
         # Check that it's not a StaticDocument
         if isinstance(doc, static_document.StaticDocument):
             return False
@@ -89,7 +84,13 @@ class DynamicCssBundlesPostRenderHook(hooks.PostRenderHook):
 
     def should_trigger(self, previous_result, doc, original_body, *_args,
                        **_kwargs):
-        """Only needs to trigger if pre-render hook added a stylesheet"""
+        """Only needs to trigger if pre-render hook added a stylesheet
+        and there is content to render"""
+        # Do not run for empty documents
+        content = previous_result if previous_result else original_body
+        if content is None:
+            return False
+
         if not hasattr(doc, 'styles'):
             return False
         return True
