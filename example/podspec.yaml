@@ -2,4 +2,9 @@ localization:
   default_locale: en
 
 ext:
-- extensions.dynamic_css_bundles.DynamicCssBundlesExtension
+- extensions.inline_text_assets.InlineTextAssetsExtension:
+    bundles:
+        - name: 'styles'
+          method: 'addCssFile'
+        - name: 'icons'
+          method: 'useIcon'

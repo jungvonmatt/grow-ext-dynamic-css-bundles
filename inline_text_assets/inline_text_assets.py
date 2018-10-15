@@ -7,24 +7,23 @@ from grow.documents import document, static_document
 from grow.extensions import hooks
 
 
-class DynamicCssBundle(object):
-
+class AssetBundle(object):
     def __init__(self, doc):
         self._doc = doc
         # Used to determine where to print the finished styles
         self._placeholder = '/* {} */'.format(uuid.uuid4())
         # Stores registered paths
-        self._css_files = []
+        self._files = []
 
     def __repr__(self):
-        return '<DynamicCssBundle({})>'.format(self._placeholder)
+        return '<AssetBundle({})>'.format(self._placeholder)
 
-    def addCssFile(self, path, priority=1):
+    def addFile(self, path, priority=1):
         # Normalize path
         path = path.lstrip('/')
-        css = (path, priority)
-        if css not in self._css_files:
-            self._css_files.append(css)
+        file = (path, priority)
+        if file not in self._files:
+            self._files.append(file)
         # Return empty string to not print None if used with {{ }}
         return ''
 
@@ -37,29 +36,29 @@ class DynamicCssBundle(object):
             return content
 
         # Reverse to keep natural order after sorting
-        self._css_files.reverse()
+        self._files.reverse()
         # Sort CSS files by priority
-        self._css_files.sort(key=itemgetter(1))
+        self._files.sort(key=itemgetter(1))
 
         base_path = self._doc.pod.root
-        stylesheet = []
-        # Try to get CSS from files and concat it
-        for path, priority in self._css_files:
+        bundle = []
+        # Try to get contents from files and concat them
+        for path, priority in self._files:
             path = '{}/{}'.format(base_path, path)
             try:
-                with open(path, 'r') as css_file:
-                    css = css_file.read()
-                    css = css.strip(' \t\n\r')
+                with open(path, 'r') as file:
+                    file_contents = file.read()
+                    file_contents = file_contents.strip(' \t\n\r')
 
-                    stylesheet.append(css)
+                    bundle.append(file_contents)
             except IOError:
                 self._doc.pod.logger.error('Could not find {}'.format(path))
 
-        stylesheet = ''.join(stylesheet)
-        return content.replace(self._placeholder, stylesheet)
+        bundle = ''.join(bundle)
+        return content.replace(self._placeholder, bundle)
 
 
-class DynamicCssBundlesPreRenderHook(hooks.PreRenderHook):
+class InlineTextAssetsPreRenderHook(hooks.PreRenderHook):
     """Handle the post-render hook."""
 
     def should_trigger(self, previous_result, doc, original_body, *_args,
@@ -73,13 +72,23 @@ class DynamicCssBundlesPreRenderHook(hooks.PreRenderHook):
         return True
 
     def trigger(self, previous_result, doc, raw_content, *_args, **_kwargs):
-        # Create dynamic stylesheet and attach to document for use in template
-        setattr(doc, 'styles', DynamicCssBundle(doc))
+        # Create bundles and attach them to doc
+        for config in self.extension.bundles:
+            bundle = AssetBundle(doc)
+            # Expose AssetBundle.addFile via custom method name
+            setattr(bundle, config['method'], bundle.addFile)
+
+            # And attach the bundle to doc for use, check that it is not reserved
+            setattr(doc, config['name'], bundle)
+            # TODO: Check if bundle name may not be used
+            # self.doc.pod.logger.error(
+            #     'Please choose another bundle name. This one is already used or taken by Grow.'
+            # )
 
         return previous_result if previous_result else raw_content
 
 
-class DynamicCssBundlesPostRenderHook(hooks.PostRenderHook):
+class InlineTextAssetsPostRenderHook(hooks.PostRenderHook):
     """Handle the post-render hook."""
 
     def should_trigger(self, previous_result, doc, original_body, *_args,
@@ -91,26 +100,30 @@ class DynamicCssBundlesPostRenderHook(hooks.PostRenderHook):
         if content is None:
             return False
 
-        if not hasattr(doc, 'styles'):
-            return False
         return True
 
     def trigger(self, previous_result, doc, raw_content, *_args, **_kwargs):
         content = previous_result if previous_result else raw_content
 
-        return doc.styles.inject(content)
+        # Replace bundle placeholder in content
+        for config in self.extension.bundles:
+            bundle = getattr(doc, config['name'])
+            content = bundle.inject(content)
+
+        return content
 
 
-class DynamicCssBundlesExtension(extensions.BaseExtension):
-    """Dynamic CSS Bundles Extension."""
+class InlineTextAssetsExtension(extensions.BaseExtension):
+    """Inline Text Assets Extension."""
 
     def __init__(self, pod, config):
-        super(DynamicCssBundlesExtension, self).__init__(pod, config)
+        super(InlineTextAssetsExtension, self).__init__(pod, config)
+        self.bundles = config['bundles']
 
     @property
     def available_hooks(self):
         """Returns the available hook classes."""
         return [
-            DynamicCssBundlesPreRenderHook,
-            DynamicCssBundlesPostRenderHook,
+            InlineTextAssetsPreRenderHook,
+            InlineTextAssetsPostRenderHook,
         ]
