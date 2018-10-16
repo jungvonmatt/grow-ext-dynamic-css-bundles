@@ -13,7 +13,7 @@ And only for the files that are really needed in your template, instead of using
 1. Run `grow install`.
 1. Add the following section to `podspec.yaml`:
 
-```
+```yaml
 ext:
 - extensions.inline_text_assets.InlineTextAssetsExtension:
     bundles:

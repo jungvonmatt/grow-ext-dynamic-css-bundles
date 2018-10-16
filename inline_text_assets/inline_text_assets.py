@@ -84,6 +84,7 @@ class InlineTextAssetsPreRenderHook(hooks.PreRenderHook):
             # self.doc.pod.logger.error(
             #     'Please choose another bundle name. This one is already used or taken by Grow.'
             # )
+            #
 
         return previous_result if previous_result else raw_content
 
@@ -98,6 +99,10 @@ class InlineTextAssetsPostRenderHook(hooks.PostRenderHook):
         # Do not run for empty documents
         content = previous_result if previous_result else original_body
         if content is None:
+            return False
+
+        # Check that it's not a StaticDocument
+        if isinstance(doc, static_document.StaticDocument):
             return False
 
         return True
